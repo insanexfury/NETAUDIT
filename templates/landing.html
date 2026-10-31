@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07111f">
+  <title>NetAudit | Choose a workspace</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/portal.css">
+  <script src="/static/portal.js" defer></script>
+</head>
+<body>
+  <main class="portal-shell">
+    <header class="portal-header">
+      <a class="brand" href="/" aria-label="NetAudit home">
+        <span class="brand-mark">N</span><span><strong>NetAudit</strong><small>NETWORK SECURITY</small></span>
+      </a>
+      <a class="button button-secondary" href="/dashboard">Free packet analysis</a>
+    </header>
+
+    <section class="portal-hero">
+      <p class="eyebrow">OFFLINE PCAP INVESTIGATION</p>
+      <h1>Analyze traffic. Investigate together.</h1>
+      <p class="section-description">Choose free, private packet analysis or sign in to a company workspace with tenant-scoped alerts, policies, and evidence.</p>
+    </section>
+
+    <section class="portal-grid" aria-label="Choose how to use NetAudit">
+      <article class="panel portal-card">
+        <span class="panel-tag">GUEST MODE</span>
+        <h2>Free packet analysis</h2>
+        <p>Inspect a PCAP without creating an account. Guest analyses are private to this browser session and are cleaned up after 24 hours.</p>
+        <a class="button" href="/dashboard">Continue as guest</a>
+      </article>
+      <article class="panel portal-card">
+        <span class="panel-tag">COMPANY WORKSPACE</span>
+        <h2>Manage company investigations</h2>
+        <p>Register a company, sign in, or request access with a company joining code.</p>
+        <div class="portal-tabs" role="tablist">
+          <button class="button button-secondary active" type="button" data-panel="login-panel">Company login</button>
+          <button class="button button-secondary" type="button" data-panel="register-panel">Register company</button>
+          <button class="button button-secondary" type="button" data-panel="join-panel">Join company</button>
+        </div>
+        <p class="status" id="portal-status" role="status" aria-live="polite"></p>
+
+        <form id="login-panel" class="portal-form">
+          <label>Username<input name="username" autocomplete="username" required></label>
+          <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+          <button class="button" type="submit">Sign in</button>
+        </form>
+
+        <form id="register-panel" class="portal-form hidden">
+          <label>Company name<input name="company_name" maxlength="160" required></label>
+          <label>Admin full name<input name="full_name" autocomplete="name" maxlength="160" required></label>
+          <label>Work email<input name="email" type="email" autocomplete="email" maxlength="254" required></label>
+          <label>Username<input name="username" autocomplete="username" minlength="3" maxlength="64" required></label>
+          <label>Password<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
+          <label>Confirm password<input name="confirm_password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
+          <button class="button" type="submit">Register company</button>
+        </form>
+
+        <form id="join-panel" class="portal-form hidden">
+          <label>Company joining code<input name="joining_code" autocomplete="off" minlength="20" required></label>
+          <label>Full name<input name="full_name" autocomplete="name" maxlength="160" required></label>
+          <label>Work email<input name="email" type="email" autocomplete="email" maxlength="254" required></label>
+          <label>Username<input name="username" autocomplete="username" minlength="3" maxlength="64" required></label>
+          <label>Requested role
+            <select name="requested_role" required>
+              <option value="SECURITY_ANALYST">Security Analyst</option>
+              <option value="VIEWER/AUDITOR">Viewer/Auditor</option>
+            </select>
+          </label>
+          <label>Password<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
+          <label>Confirm password<input name="confirm_password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
+          <button class="button" type="submit">Request company access</button>
+        </form>
+        <div id="joining-code-result" class="joining-code-result hidden" aria-live="polite"></div>
+      </article>
+    </section>
+    <footer class="app-footer"><span>NetAudit</span><span>PCAP heuristics are investigative indicators, not proof of an attack.</span></footer>
+  </main>
+</body>
+</html>

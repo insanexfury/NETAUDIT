@@ -3,6 +3,14 @@ services:
     build: .
     ports:
       - "8000:8000"
+    environment:
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-52428800}
+      MAX_PROCESSING_SECONDS: ${MAX_PROCESSING_SECONDS:-180}
+      EVIDENCE_ENCRYPTION_KEY: ${EVIDENCE_ENCRYPTION_KEY:-}
+      EVIDENCE_SIGNING_PRIVATE_KEY: ${EVIDENCE_SIGNING_PRIVATE_KEY:-}
+      EVIDENCE_SIGNING_PUBLIC_KEY: ${EVIDENCE_SIGNING_PUBLIC_KEY:-}
     volumes:
       - ./data:/app/data
       - ./uploads:/app/uploads

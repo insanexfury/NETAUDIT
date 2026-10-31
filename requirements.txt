@@ -6,5 +6,6 @@ pyshark==0.6
 scapy==2.6.1
 reportlab==4.2.5
 jinja2==3.1.5
+cryptography>=44.0.0,<47.0.0
 pytest==8.3.4
 httpx==0.28.1

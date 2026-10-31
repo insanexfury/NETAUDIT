@@ -4,14 +4,15 @@ from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 
+from app.config import MAX_PROCESSING_SECONDS
 from app.services.analyzer import analyze_packets
 from app.services.pcap_parser import parse_pcap
 
 
-def _packet_objects_from_capture(path: Path):
+def _packet_objects_from_capture(path: Path, timeout_seconds=MAX_PROCESSING_SECONDS):
     """Convert parser output into objects that the existing analyzer understands."""
     packets = []
-    for telemetry in parse_pcap(path):
+    for telemetry in parse_pcap(path, timeout_seconds=timeout_seconds):
         packet = SimpleNamespace(**telemetry)
         if getattr(packet, "timestamp", None) is not None and not isinstance(packet.timestamp, datetime):
             packet.timestamp = None
@@ -33,9 +34,9 @@ def _protocol_rows(protocol_distribution):
     return rows
 
 
-def _capture_summary(path: Path):
-    packets = _packet_objects_from_capture(path)
-    statistics, alerts, score, severity, reasons = analyze_packets(packets)
+def _capture_summary(path: Path, policy=None, timeout_seconds=MAX_PROCESSING_SECONDS):
+    packets = _packet_objects_from_capture(path, timeout_seconds)
+    statistics, alerts, score, severity, reasons = analyze_packets(packets, policy)
     timestamps = [packet.timestamp for packet in packets if getattr(packet, "timestamp", None) is not None]
     total_bytes = sum(getattr(packet, "packet_length", 0) for packet in packets)
     total_packets = len(packets)
@@ -76,10 +77,10 @@ def _capture_summary(path: Path):
     }
 
 
-def compare_capture_files(path_a: Path, path_b: Path):
+def compare_capture_files(path_a: Path, path_b: Path, policy=None, timeout_seconds=MAX_PROCESSING_SECONDS):
     """Compare two captures with the same metrics used by the existing dashboard."""
-    capture_a = _capture_summary(path_a)
-    capture_b = _capture_summary(path_b)
+    capture_a = _capture_summary(path_a, policy, timeout_seconds)
+    capture_b = _capture_summary(path_b, policy, timeout_seconds)
     protocol_labels = sorted(set(capture_a["protocol_distribution"]) | set(capture_b["protocol_distribution"]))
     protocol_comparison = []
     for label in protocol_labels:

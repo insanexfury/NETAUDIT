@@ -3,8 +3,12 @@ from collections import Counter
 
 
 def score_alerts(alerts: list[dict]) -> tuple[int, str, list[str]]:
-    """Combine alert contributions, cap at 100, and return viva-friendly reasons."""
-    score = min(100, sum(alert["score"] for alert in alerts))
+    """Sum one maximum contribution per rule type to avoid repeated-window inflation."""
+    contributions = {}
+    for alert in alerts:
+        alert_type = alert["alert_type"]
+        contributions[alert_type] = max(contributions.get(alert_type, 0), alert["score"])
+    score = min(100, sum(contributions.values()))
     if score >= 80:
         severity = "Critical"
     elif score >= 60:
@@ -13,5 +17,5 @@ def score_alerts(alerts: list[dict]) -> tuple[int, str, list[str]]:
         severity = "Medium"
     else:
         severity = "Low"
-    reasons = list(Counter(alert["alert_type"] for alert in alerts).keys())
+    reasons = list(Counter(contributions).keys())
     return score, severity, reasons

@@ -8,6 +8,9 @@ let packetRows = [];
 let packetRequestId = 0;
 let historyRows = [];
 let toastTimer;
+let csrfToken = '';
+let authContextError = null;
+let authContextPromise;
 
 document.addEventListener('DOMContentLoaded', initialize);
 
@@ -19,6 +22,11 @@ function initialize() {
   bindHistory();
   bindReportLinks();
   renderIcons();
+  authContextPromise = apiRequest('/auth/me').then((session) => {
+    csrfToken = session.csrf_token || '';
+  }).catch((error) => {
+    authContextError = error;
+  });
   checkBackendHealth();
   loadAnalyses();
 }
@@ -89,6 +97,11 @@ function bindUpload() {
 
   byId('upload-form').addEventListener('submit', async (event) => {
     event.preventDefault();
+    await authContextPromise;
+    if (authContextError) {
+      setStatus(authContextError.message, true);
+      return;
+    }
     const [file] = input.files;
     const validationError = validatePcap(file);
     if (validationError) {
@@ -126,6 +139,11 @@ function bindComparison() {
 
   byId('compare-form').addEventListener('submit', async (event) => {
     event.preventDefault();
+    await authContextPromise;
+    if (authContextError) {
+      setCompareStatus(authContextError.message, true);
+      return;
+    }
     const [captureA] = fileA.files;
     const [captureB] = fileB.files;
     const validationError = validatePcap(captureA) || validatePcap(captureB);
@@ -655,7 +673,10 @@ function destroyCharts() {
 async function apiRequest(url, options = {}) {
   let response;
   try {
-    response = await fetch(url, options);
+    const method = (options.method || 'GET').toUpperCase();
+    const headers = { ...(options.headers || {}) };
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(method) && csrfToken) headers['X-CSRF-Token'] = csrfToken;
+    response = await fetch(url, { credentials: 'same-origin', ...options, headers });
   } catch (error) {
     throw new Error(`Network request failed: ${error.message}`);
   }

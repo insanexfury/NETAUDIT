@@ -17,21 +17,19 @@ Manual Wireshark inspection is valuable but time-consuming for large or historic
 ## Architecture
 
 ```text
-HTML + Tailwind + Chart.js dashboard
-              ↓
-        FastAPI routes
-              ↓
-     upload validation and storage
-              ↓
-   PyShark FileCapture (TShark)
-              ↓
-     telemetry extraction service
-              ↓
-    SQLAlchemy ORM → SQLite database
-              ↓
-   time-window statistics + rule engine
-              ↓
-  alerts + threat score → dashboard / PDF
+Landing page → guest analysis OR company sign-in/onboarding
+                           ↓
+                     FastAPI routes
+                session + CSRF + role checks
+                           ↓
+   tenant-scoped upload → PyShark/TShark → telemetry → SQLite
+                           ↓
+ company policy snapshot → heuristics → alerts + capped score
+           ↓                ↓                  ↓
+     evidence SHA-256   incident cases     company WebSockets
+     optional AES-GCM   hash-linked audit  PDF reports
+                           ↓
+             existing HTML/JavaScript dashboard
 ```
 
 ## Features
@@ -43,6 +41,9 @@ HTML + Tailwind + Chart.js dashboard
 - Runs configurable port-scan, possible brute-force, and abnormal-volume checks over 10-second windows.
 - Generates a downloadable PDF report from persisted data.
 - Includes safe, offline synthetic PCAP generation for a predictable lab demo.
+- Provides isolated guest sessions and independent multi-company workspaces.
+- Requires company-admin approval before employee accounts become active.
+- Adds versioned tenant-specific detection policies, DDoS/SYN-flood heuristics, incidents, live alerts, and evidence verification.
 
 ## Alignment with ICT 3141 Synopsis
 
@@ -68,32 +69,97 @@ HTML + Tailwind + Chart.js dashboard
 - `analyses`: upload metadata, completion state, packet count, duration, threat score, and stored statistics.
 - `packets`: structured timestamp, packet number, source/destination IP, protocol, ports, packet length, TCP flags, DNS query, and HTTP fields.
 - `alerts`: detection type, severity, source/destination, timestamp, readable evidence, and score contribution.
+- `companies` and `users`: company identities, approved roles, and account lifecycle.
+- `detection_settings`: versioned settings stored independently for each company.
+- `audit_logs`: company-scoped events linked by a SHA-256 hash chain.
+- `incidents`, `incident_events`, and `incident_analyses`: company-scoped case notes, state changes, and analysis associations.
 
-The database is created at `data/netaudit.db` when the app starts. The dashboard APIs query this database rather than retaining results only in memory.
+`analyses.company_id` scopes company workspaces. Company packets and alerts inherit that scope through their analysis foreign key. Anonymous analyses have no company ID and are additionally scoped to a signed, random guest-session cookie. The database is created at `data/netaudit.db` when the app starts. Startup applies additive schema updates; it does not drop or reset tables.
+
+## Guest Analysis and Company Workspaces
+
+- `/` is the landing page. **Free packet analysis** opens `/dashboard`; guest users do not need an account. Their analysis results are isolated to the signed browser session for 24 hours, and the uploaded PCAP is deleted after parsing. Expired guest records are purged on the next upload.
+- **Company login**, **Register company**, and **Join company** are available from the landing page. Company registration creates the first approved `ADMIN` and a default detection policy in one transaction. The random joining code is shown once; only its SHA-256 hash is stored.
+- A joining code selects a company but does not approve an account. Join requests remain `PENDING` until that company's Admin approves them and assigns a final role.
+- `/workspace` is the company portal. `/dashboard` remains the existing analyzer; authenticated uploads use the signed-in company's saved policy.
+- Approved users can see only their company's analysis and incident records. Resource IDs from another company return `404`. The backend—not page visibility—enforces the company scope and role.
+
+### Company roles
+
+| Capability | ADMIN | SECURITY ANALYST | VIEWER/AUDITOR |
+|---|---|---|---|
+| Company dashboard, summaries, permitted reports | Yes | Yes | Restricted/read-only |
+| Upload and analyze PCAPs | Yes | Yes | No |
+| Packet-level telemetry | Yes | Yes | No |
+| Approve requests, manage users, rotate joining code | Yes | No | No |
+| Change company detection settings | Yes | No | No |
+| Incidents and investigation notes | Yes | Yes | Read-only |
+| Verify evidence hashes/signatures | Yes | Yes | Yes |
+| Download original PCAP evidence | Yes | Yes | No |
+| Access another company | No | No | No |
+
+Sessions use signed, `HttpOnly`, `SameSite=Strict` cookies with a session-bound CSRF token for authenticated mutations. Session cookies expire after 12 hours and logout revokes the user's active sessions. Set a stable random `SESSION_SECRET` for deployments; when unset, a process-local random key is used and restarting the server signs out everyone. Set `COOKIE_SECURE=true` when serving over HTTPS.
+
+## Tenant Detection Policies and Scoring
+
+Every company has its own validated policy record and monotonically increasing version. Admin changes affect subsequent analyses only. Each completed analysis stores its effective JSON settings and policy version; historical results are not recalculated.
+
+The original rules remain: distinct destination-port count, repeated TCP attempts to common authentication ports, and bytes above a median-window baseline. New default heuristics are:
+
+- **Possible DDoS Activity:** at least 100 packets and 100,000 bytes to a destination in one window, from at least 10 distinct sources, with at least 60% of the window's packets concentrated on that destination.
+- **Possible SYN Flood:** at least 100 initial SYN packets to one destination, from at least 5 sources, and at least an 80% aggregate unmatched-handshake estimate. The estimate does not correlate TCP sequence numbers and may be distorted by incomplete captures.
+
+All thresholds and per-rule score contributions can be changed by that company's Admin. DDoS and SYN alerts are explicitly heuristic findings, not proof of an attack. Each rule type contributes at most its maximum configured score once per analysis, so repeated windows do not multiply one rule's score. Contributions from distinct rules are summed and capped at 100. Severity bands remain Low (0–29), Medium (30–59), High (60–79), Critical (80–100); alert severity is separate from the analysis score.
+
+## Evidence, Incidents, Audit, and Notifications
+
+- A company PCAP receives a SHA-256 digest and a canonical manifest tied to the analysis ID, company, submitter, timestamp, and policy version. The **Verify evidence** action hashes the stored file again.
+- Optional AES-256-GCM encryption at rest is enabled by setting `EVIDENCE_ENCRYPTION_KEY` to a base64-encoded random 32-byte key. It encrypts company PCAP evidence, authenticates ciphertext before decryption, and never stores keys with the files. A missing or invalid key fails closed. Guest PCAPs are deleted instead of retained.
+- Optional manifest signatures use a configured PEM private key (`EVIDENCE_SIGNING_PRIVATE_KEY`) and trusted PEM public key (`EVIDENCE_SIGNING_PUBLIC_KEY`). RSA-PSS/SHA-256, ECDSA/SHA-256, and Ed25519/Ed448 keys are supported by the installed `cryptography` package. Keep the private key in a deployment secret store and separate from the database. A valid signature authenticates the manifest under the configured public key; it does not prove captured traffic is genuine.
+- Audit entries include authentication, onboarding, approvals, policy changes, analysis, evidence, downloads, reports, and incidents. Per-company entries are SHA-256 hash-linked. This makes isolated edits detectable but is not tamper-proof against an attacker able to rewrite the database and recompute the full chain.
+- Incidents can be linked to multiple analyses and alerts, assigned to an approved company Security Analyst, and tracked through `NEW`, `UNDER_INVESTIGATION`, `ESCALATED`, and `RESOLVED` with chronological notes.
+- Authenticated WebSocket notifications are sent only to connections for the owning company. Viewer/Auditor payloads omit evidence details. Delivery is in-process; multi-worker/multi-host deployments need a shared event broker before scaling horizontally.
+
+### Database migration and legacy records
+
+Startup adds missing columns/indexes without deleting tables. Any pre-tenant analysis rows are assigned to a dedicated **Legacy NetAudit Workspace**, including their linked packet and alert data. For that migrated workspace, create the initial Admin through the one-time bootstrap command; it never creates or prints a source-coded password:
+
+```powershell
+$env:BOOTSTRAP_ADMIN_NAME = "Workspace Admin"
+$env:BOOTSTRAP_ADMIN_EMAIL = "admin@example.test"
+$env:BOOTSTRAP_ADMIN_USERNAME = "workspace-admin"
+$env:BOOTSTRAP_ADMIN_PASSWORD = "<secure password of at least 12 characters>"
+python -m app.bootstrap_admin
+```
+
+The command prints a newly rotated joining code once. If there are no legacy rows, users can register a company normally. Always back up the SQLite file before deploying schema changes to a database containing important data.
 
 ## Local Setup
 
 Prerequisite: install Wireshark with **TShark** and make `tshark` available on PATH. PyShark is an interface to TShark, so installing the Python package alone is not enough.
 
 ```powershell
+Copy-Item .env.example .env
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 python scripts/generate_demo_pcaps.py
-uvicorn app.main:app --reload
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+uvicorn app.main:app --reload --env-file .env
 ```
 
-Open `http://127.0.0.1:8000`. API documentation is available at `http://127.0.0.1:8000/docs`.
+Copy the generated value into `SESSION_SECRET` in `.env` before starting. Set `COOKIE_SECURE=true` only when using HTTPS. Open `http://127.0.0.1:8000` for the landing page, then choose guest analysis or a company workspace. API documentation is available at `http://127.0.0.1:8000/docs`.
 
 ## Docker Setup
 
 Docker installs TShark in the image, so no host Wireshark installation is required for container parsing.
 
 ```powershell
+Copy-Item .env.example .env
 docker compose up --build
 ```
 
-Open `http://127.0.0.1:8000`. The Compose volumes preserve the SQLite database, stored uploaded PCAPs, and generated reports on the host.
+Add persistent secrets to `.env` before deployment. Open `http://127.0.0.1:8000`. The Compose volumes preserve the SQLite database, stored company PCAP evidence, and generated reports on the host.
 
 ## Upload and Demo Workflow
 
@@ -124,7 +190,7 @@ The score is clamped to 0–100: **Low** 0–29, **Medium** 30–59, **High** 60
 Run the detection, telemetry, and upload-to-SQLite integration tests:
 
 ```powershell
-pytest -q
+python -m pytest -q
 ```
 
 The end-to-end API test substitutes a deterministic parser stream so it verifies the web upload → SQLite persistence → detection route without needing a local TShark binary. The actual application parser remains PyShark/TShark-backed and is exercised by uploading generated PCAPs.

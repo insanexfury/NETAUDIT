@@ -1,0 +1,50 @@
+.portal-shell, .workspace-shell { width: min(1240px, 100%); margin: 0 auto; padding: 22px clamp(18px, 4vw, 54px) 28px; }
+.portal-header, .workspace-user, .workspace-toolbar, .workspace-actions, .portal-tabs { display: flex; align-items: center; gap: 12px; }
+.portal-header { justify-content: space-between; min-height: 60px; }
+.portal-header .brand { padding: 0; }
+.portal-hero { max-width: 760px; margin: 48px auto 28px; text-align: center; }
+.portal-hero .section-description { margin-right: auto; margin-left: auto; }
+.portal-hero h1 { font-size: clamp(2rem, 5vw, 3.2rem); }
+.portal-grid { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); align-items: start; gap: 16px; }
+.portal-card { display: grid; gap: 15px; padding: 24px; }
+.portal-card > p { margin: 0; color: var(--muted); line-height: 1.65; }
+.portal-card > .button { justify-self: start; }
+.portal-tabs { flex-wrap: wrap; margin-top: 6px; }
+.portal-tabs .button { min-height: 34px; padding: 0 10px; font-size: .68rem; }
+.portal-tabs .button.active { border-color: rgba(34, 211, 238, .3); color: #67e8f9; }
+.portal-form, .workspace-form { display: grid; gap: 12px; }
+.portal-form label, .workspace-form label { display: grid; gap: 6px; color: #a9b7c8; font-size: .7rem; }
+.portal-form input, .portal-form select, .workspace-form input, .workspace-form select, .workspace-form textarea, .workspace-user select {
+  width: 100%; min-height: 38px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; outline: 0; background: var(--surface-soft); color: var(--text); font: inherit;
+}
+.portal-form input:focus, .portal-form select:focus, .workspace-form input:focus, .workspace-form select:focus, .workspace-form textarea:focus { border-color: var(--accent); }
+.workspace-shell .workspace-heading { margin-top: 34px; text-align: left; }
+.workspace-shell .workspace-heading .section-description { margin-left: 0; }
+.workspace-user { color: var(--muted); font-size: .72rem; }
+.workspace-toolbar { justify-content: space-between; margin-bottom: 14px; }
+.workspace-toolbar strong { font-size: .85rem; }
+.workspace-actions { flex-wrap: wrap; }
+.workspace-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 14px 0; align-items: start; }
+.workspace-columns > .panel { min-width: 0; }
+.workspace-form { margin-top: 16px; }
+.workspace-form textarea { min-height: 260px; resize: vertical; font-family: Consolas, monospace; font-size: .72rem; line-height: 1.5; }
+.settings-heading { margin-top: 26px; }
+.joining-code-result { display: grid; gap: 9px; padding: 13px; border: 1px solid rgba(34, 211, 238, .22); border-radius: 8px; background: rgba(14, 165, 233, .08); color: #d7e2ef; font-size: .72rem; overflow-wrap: anywhere; }
+.joining-code-result code { color: #67e8f9; font-size: .75rem; user-select: all; }
+.live-alerts { display: grid; gap: 7px; margin-top: 13px; }
+.live-alerts p { margin: 0; padding: 10px; border: 1px solid var(--border); border-radius: 7px; color: #cbd5e1; font-size: .7rem; }
+.workspace-shell .app-footer { margin-top: 28px; }
+
+@media (max-width: 820px) {
+  .portal-grid, .workspace-columns { grid-template-columns: 1fr; }
+  .portal-hero { margin-top: 32px; }
+  .workspace-toolbar { align-items: flex-start; flex-direction: column; }
+}
+@media (max-width: 520px) {
+  .portal-shell, .workspace-shell { padding-right: 14px; padding-left: 14px; }
+  .portal-header { align-items: flex-start; }
+  .portal-header > .button { min-height: 34px; padding: 0 9px; font-size: .65rem; }
+  .portal-card { padding: 17px; }
+  .portal-tabs { display: grid; grid-template-columns: 1fr; }
+  .portal-tabs .button { width: 100%; }
+}

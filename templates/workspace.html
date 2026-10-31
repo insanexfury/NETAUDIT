@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07111f">
+  <title>NetAudit | Company workspace</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/portal.css">
+  <script src="/static/workspace.js" defer></script>
+</head>
+<body>
+  <main class="workspace-shell">
+    <header class="portal-header">
+      <a class="brand" href="/"><span class="brand-mark">N</span><span><strong>NetAudit</strong><small>COMPANY WORKSPACE</small></span></a>
+      <div class="workspace-user">
+        <span id="workspace-identity">Checking session…</span>
+        <button id="logout-button" class="button button-secondary hidden" type="button">Sign out</button>
+      </div>
+    </header>
+    <section class="portal-hero workspace-heading">
+      <p class="eyebrow">TENANT-ISOLATED INVESTIGATION</p>
+      <h1 id="workspace-company">Company workspace</h1>
+      <p class="section-description" id="workspace-description">Sign in to access your company's analyses, policy, and security events.</p>
+      <div id="workspace-login-link"><a class="button" href="/">Company login</a> <a class="button button-secondary" href="/dashboard">Free guest analysis</a></div>
+    </section>
+    <p id="workspace-status" class="status" role="status" aria-live="polite"></p>
+    <section id="workspace-data" class="hidden">
+      <div class="workspace-toolbar panel panel-padding">
+        <div><p class="eyebrow">SIGNED-IN ROLE</p><strong id="workspace-role"></strong></div>
+        <div class="workspace-actions"><a class="button" href="/dashboard">Open PCAP analysis</a><button id="refresh-button" class="button button-secondary" type="button">Refresh data</button></div>
+      </div>
+      <section class="workspace-columns">
+        <article class="panel panel-padding">
+          <div class="panel-heading"><div><h2>Company analyses</h2><p>Only this company's saved analyses are listed.</p></div></div>
+          <div class="table-wrap"><table><thead><tr><th>PCAP</th><th>Packets</th><th>Score</th><th>Result</th><th>Evidence</th></tr></thead><tbody id="company-analyses"></tbody></table></div>
+        </article>
+        <article class="panel panel-padding">
+          <div class="panel-heading"><div><h2>Recent incidents</h2><p>Company-scoped investigation cases.</p></div></div>
+          <form id="incident-form" class="workspace-form">
+            <label>Incident title<input name="title" minlength="4" maxlength="200" required></label>
+            <label>Analysis ID (optional)<input name="analysis_id" type="number" min="1"></label>
+            <button class="button" type="submit">Create incident</button>
+          </form>
+          <div class="table-wrap"><table><thead><tr><th>Incident</th><th>Status</th><th>Severity</th><th>Update</th></tr></thead><tbody id="incident-list"></tbody></table></div>
+        </article>
+      </section>
+      <section id="admin-panel" class="workspace-columns hidden">
+        <article class="panel panel-padding">
+          <div class="panel-heading"><div><h2>People and access requests</h2><p>Approve applicants and manage approved company accounts.</p></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Applicant / account</th><th>Status</th><th>Requested / current role</th><th>Admin action</th></tr></thead><tbody id="company-users"></tbody></table></div>
+        </article>
+        <article class="panel panel-padding">
+          <div class="panel-heading"><div><h2>Company joining code</h2><p>Rotating the code immediately invalidates the previous one.</p></div></div>
+          <button id="rotate-code-button" class="button" type="button">Rotate joining code</button>
+          <p id="joining-code-display" class="joining-code-result hidden"></p>
+          <div class="panel-heading settings-heading"><div><h2>Detection policy</h2><p>Versioned per company; prior analyses retain their configuration snapshot.</p></div></div>
+          <form id="settings-form" class="workspace-form">
+            <label>Policy JSON<textarea name="settings" rows="18" spellcheck="false" required></textarea></label>
+            <button class="button" type="submit">Validate and save policy</button>
+          </form>
+        </article>
+      </section>
+      <section id="audit-panel" class="panel panel-padding hidden">
+        <div class="panel-heading"><div><h2>Tamper-evident audit history</h2><p id="audit-chain-status"></p></div></div>
+        <div class="table-wrap"><table><thead><tr><th>Time</th><th>Action</th><th>Outcome</th><th>Actor</th><th>Resource</th></tr></thead><tbody id="audit-list"></tbody></table></div>
+      </section>
+      <section id="notification-panel" class="panel panel-padding">
+        <div class="panel-heading"><div><h2>Live company alerts</h2><p>Authenticated notifications from this company's analyses only.</p></div><span id="notification-state" class="panel-tag">Connecting…</span></div>
+        <div id="live-alerts" class="live-alerts" aria-live="polite"></div>
+      </section>
+    </section>
+    <footer class="app-footer"><span>NetAudit</span><span>Company records are scoped and authorized by the backend.</span></footer>
+  </main>
+</body>
+</html>
